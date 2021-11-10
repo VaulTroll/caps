@@ -25,14 +25,6 @@ analy_model_sg=KeyedVectors.load("w2v_sg.kv")
 stopwords = load_stopwords()
 testList, titleList = news_preprocess('naver_data')
 
-"""
-def t_softmax(p, n):
-
-    a = np.array([p,-n])
-    print(a)
-    return np.exp(a) / np.sum(np.exp(a), axis=0)
-"""
-
 
 
 def get_emotions(stopwords):
@@ -40,20 +32,41 @@ def get_emotions(stopwords):
     test_n = 100 #분류할 기사 갯수
 
     for n in range(test_n): #여기서 test_n을 len(testList)로 두면 전체 기사 분석
-        print("해당 기사 제목: ",titleList[n])
-        pos_count =0
+        pos_count=0
         nag_count=0
-        pos= 0.0
+        pos=0.0
         nag=0.0
+        t_pos=0.0
+        t_nag=0.0
+        np_val=0.0
+        np_div=0.0
+        np_log =0.0
 
         tokens = konlpy.tag.Mecab().morphs(testList[n])
         tokens = [word for word in tokens if not word in stopwords]
+        #print(tokens)
         for k in range(len(tokens)): #토큰의 갯수만큼 반복
             #해당 토큰과 유사단어들을 가져옴
             if tokens[k] in analy_model_cbow:
                 sim= analy_model_cbow.most_similar(tokens[k])
+            elif tokens[k] in analy_model_sg:
+                sim = analy_model_sg.most_similar(tokens[k])
             else: break
+            #print(sim)
+            #print(tokens[k])
 
+            #해당 토큰이 감성사전에 들어있는지 확인
+            if tokens[k] in good_emotion:
+                t_pos+=1
+                pos+=1
+                pos_count+=1
+            if tokens[k] in bad_emotion:
+                t_nag-=1
+                nag-=1
+                nag_count-=1
+
+
+            #다음으로는 유사 단어들을 통해 계산
             #여기서 첫번째 유사단어는 제외한 이유는 대부분 첫 단어에는 반대 단어가 들어가있는 경우가 많기 때문
             for t in range(9):
                 if sim[t+1][0] in good_emotion:
@@ -65,53 +78,32 @@ def get_emotions(stopwords):
                     nag -= sim[t+1][1]
                     nag_count +=1
 
-        print("긍정 value: ",pos)
-        print("부정 value: ",nag)
-        #print(pos_count)
-        #print(nag_count)
-        print("NP value :",pos+nag)
-        print("NP 비율: ",pos_count/(pos_count+nag_count+es))
-        print("해당 기사의 NP 지수:  ",pos/(pos-nag+es))
-        #print((pos+nag)/(pos_count+nag_count))
+        print("해당 기사 제목: ",titleList[n])
+        print("총 긍정 value 합: ",pos)
+        print("총 부정 value 합: ",nag)
+
+        np_val = pos+nag
+        np_div = np_val/(pos_count+nag_count+es)
+        print("NP value: ", np_val)
+        print("비교 위한 test NP: ", t_pos + t_nag)
+
+        if np_val ==0:
+            print("np를 측정하지 못했습니다. ")
+            break
+
+        if np_val<0:
+            np_log = math.log(abs(np_val))
+            np_log = -np_log
+        else:
+            np_log = math.log(abs(np_val))
+
+        print("NP div: ", np_div) #값이 너무 작아짐
+        print("np_log: ", np_log) #학습에 유리할지 고민
         print('---------------------------------------------------------------------')
 
 
+#######################################################
 
 get_emotions(stopwords)
-"""
-감성사전을 만드는데 이용한 단어들
-print(analy_model_sg.most_similar("악재"))
-print(analy_model_sg.most_similar("부정"))
-print(analy_model_sg.most_similar("힘든"))
-print(analy_model_sg.most_similar("하락"))
-print(analy_model_sg.most_similar("불안감"))
-print(analy_model_sg.most_similar("악영향"))
-print(analy_model_sg.most_similar("둔감"))
-print(analy_model_sg.most_similar("불안"))
-print(analy_model_sg.most_similar("하락"))
-print(analy_model_sg.most_similar("급락"))
-print(analy_model_sg.most_similar("하락세"))
-print(analy_model_sg.most_similar("후폭풍"))
-
-print('------------------------------------')
-
-print(analy_model_sg.most_similar("호재"))
-print(analy_model_sg.most_similar("긍정"))
-print(analy_model_sg.most_similar("희소식"))
-print(analy_model_sg.most_similar("상승"))
-print(analy_model_sg.most_similar("기대감"))
-print(analy_model_sg.most_similar("반등"))
-print(analy_model_sg.most_similar("편안"))
-print(analy_model_sg.most_similar("급등"))
-print(analy_model_sg.most_similar("상승세"))
-print(analy_model_sg.most_similar("기대"))
-print(analy_model_sg.most_similar("촉매제"))
-print(analy_model_sg.most_similar("기폭제"))
-print(analy_model_sg.most_similar("급상승"))
-print(analy_model_sg.most_similar("관심"))
-print(analy_model_sg.most_similar("올랐"))
-print(analy_model_sg.most_similar("낭보"))
-"""
-
 
 
